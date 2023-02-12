@@ -26,6 +26,7 @@
         <button
         @:click="add"
         @:keydown.enter="add" 
+
         
           type="button"
           class="my-4 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
@@ -51,12 +52,21 @@
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <!-- продублировал див столько раз сколько элементов в массиве blockItems -->
             <!-- v-bind:key="el" можно заменить на :key="el" -->
+            <!--         @click="sell=el" при клике на блок в sell попадает объект  -->
+            <!-- :class="sell===el? 'border-4':'' " заменили на :class="{'border-4': sell===el
+}"   означает одно и тоже. т.е добавление класса  eсли элемент выбран в sell== el-->
+
           <div 
 
           v-for=" el in blockItems"
             :key="el.name"
+                  @click="select(el )"
 
-            class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid cursor-pointer"
+:class="{
+  'border-2': sell===el
+}"
+
+            class="bg-white overflow-hidden shadow rounded-lg border-purple-800 border-solid  cursor-pointer"
           >
             <div class="px-4 py-5 sm:p-6 text-center">
               <dt class="text-sm font-medium text-gray-500 truncate">
@@ -70,8 +80,10 @@
             </div>
             <div class="w-full border-t border-gray-200"></div>
             <!-- высываю функцию для удаления элементов с аргументом el -->
+                    <!-- @:click.stop="remove(el)"  прекратил всплытие события .stop -->
+
             <button
-        @:click="remove(el)" 
+        @click.stop="remove(el)" 
                       class="flex items-center justify-center font-medium w-full bg-gray-100 px-4 py-4 sm:px-6 text-md text-gray-500 hover:text-gray-600 hover:bg-gray-200 hover:opacity-20 transition-all focus:outline-none"
             >
               <svg
@@ -91,18 +103,26 @@
           </div>
         </dl>
         <hr v-if='blockItems.length' class="w-full border-t border-gray-600 my-4" />
-      <section class="relative" v-if='false'>
+        <!-- sell если есть то отображается -->
+      <section v-if='sell' class="relative" > 
         <h3 class="text-lg leading-6 font-medium text-gray-900 my-8">
-          VUE - USD
+          <!-- добаление динамически имени при клике не блок -->
+          {{sell.name}} - USD
         </h3>
         <div class="flex items-end border-gray-600 border-b border-l h-64">
-          <div class="bg-purple-800 border w-10 h-24"></div>
-          <div class="bg-purple-800 border w-10 h-32"></div>
-          <div class="bg-purple-800 border w-10 h-48"></div>
-          <div class="bg-purple-800 border w-10 h-16"></div>
+           <!-- v-for="(bar,idx) in normGraph()"
+          :key="idx" нет кея за которые прицепиться в данных поэтому мы цепляемся заиндекс -->
+          <div
+          v-for="(bar,idx) in normGraph()"
+          :key="idx"
+          :style="{height:`${bar}%`}"
+           class="bg-purple-800 border w-10 "></div>
+         
         </div>
+        <!-- при нажатии  на крестик  sell=null  -->
         <button
-          type="button"
+@click="sell=null"    
+      type="button"
           class="absolute top-0 right-0"
         >
           <svg
@@ -138,10 +158,11 @@ export default {
   
   data(){
     return{
-      nameBlock:"default",
-      blockItems:[ 
-      {name:"demo1",price:"-"}
-      ]
+      nameBlock:"",
+      blockItems:[],
+    sell:null ,// состояние, изначально равно 0
+    graph:[] //график
+     
     }
   },
   // тут описываются функции для событий и прочего
@@ -151,12 +172,33 @@ const newTiker={
   name:this.nameBlock,price:"-" // данные введенные в инпут добавляются в заголовок блока
 }; 
 this.blockItems.push(newTiker) // добавляю в массив объектов мной созанный новый блок с новым именем введенным через инпут
+setInterval( async () => { const response= await fetch( // работа с асинхронной функцией, await заставит интерпретатор  ждать  пока промис справа от await не выполнится т.е fetch
+  `https://min-api.cryptocompare.com/data/price?fsym=${newTiker.name}&tsyms=USD&api_key=ce3fd966e7a1d10d65f907b20bf000552158fd3ed1bd614110baa0ac6cb57a7e`)
+  const data=await response.json() 
+this.blockItems.find(el=>el.name===newTiker.name).price=data.USD
+if(this.sell?.name===newTiker.name){
+  this.graph.push(data.USD)
+}
+
+}, 3000); //в массиве нашел элемент с именем равным такому же как newTiker.name и добавил ему значение в $ нужной вылюты крипто
 this.nameBlock="" // после добавления данных поле становится чистым 
+},
+
+select(nameBlock){
+this.sell=nameBlock; //при выборе нового блока график чистится(становится также новым ) 
+this.graph=[];
+
 },
 
 
 remove(deleteBlokItems){
 this.blockItems=this.blockItems.filter(el=> el!== deleteBlokItems)// тут обычный фильтр по массиву для удаления элементов
+},
+normGraph(){
+const maxValue=Math.max(...this.graph);
+const minValue=Math.min(...this.graph);
+return this.graph.map((price)=> 5+((price-minValue)*95)/(maxValue-minValue))
+
 }
 
   }
