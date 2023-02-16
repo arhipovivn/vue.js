@@ -165,32 +165,43 @@ export default {
      
     }
   },
+  // 
+  created(){
+    const blockItemsData=localStorage.getItem("cryptonomicon-list");
+    if(blockItemsData){
+      this.blockItems = JSON.parse(blockItemsData)
+      this.blockItems.forEach(ticker => {
+        this.update(ticker.name);
+      });
+
+    }
+  },
   // тут описываются функции для событий и прочего
   methods:{
-    add(){
-const newTiker={
-  name:this.nameBlock,price:"-" // данные введенные в инпут добавляются в заголовок блока
-}; 
-this.blockItems.push(newTiker) // добавляю в массив объектов мной созанный новый блок с новым именем введенным через инпут
-setInterval( async () => { const response= await fetch( // работа с асинхронной функцией, await заставит интерпретатор  ждать  пока промис справа от await не выполнится т.е fetch
-  `https://min-api.cryptocompare.com/data/price?fsym=${newTiker.name}&tsyms=USD&api_key=ce3fd966e7a1d10d65f907b20bf000552158fd3ed1bd614110baa0ac6cb57a7e`)
+update (newTikerName) {
+  setInterval( async () => { const response= await fetch( // работа с асинхронной функцией, await заставит интерпретатор  ждать  пока промис справа от await не выполнится т.е fetch
+  `https://min-api.cryptocompare.com/data/price?fsym=${newTikerName}&tsyms=USD&api_key=ce3fd966e7a1d10d65f907b20bf000552158fd3ed1bd614110baa0ac6cb57a7e`)
   const data=await response.json() 
-this.blockItems.find(el=>el.name===newTiker.name).price=data.USD
-if(this.sell?.name===newTiker.name){
+this.blockItems.find(el=>el.name===newTikerName).price=data.USD
+if(this.sell?.name===newTikerName){
   this.graph.push(data.USD)
 }
-
 }, 3000); //в массиве нашел элемент с именем равным такому же как newTiker.name и добавил ему значение в $ нужной вылюты крипто
 this.nameBlock="" // после добавления данных поле становится чистым 
+},
+add () {
+const newTiker={
+name:this.nameBlock,price:"-" // данные введенные в инпут добавляются в заголовок блока
+}; 
+this.blockItems.push(newTiker)// добавляю в массив объектов мной созанный новый блок с новым именем введенным через инпут
+localStorage.setItem("cryptonomicon-list",JSON.stringify(this.blockItems));// локальное хранилище данных в браузере получаем эти данные по ключу, и значению 
+this.update(newTiker.name);
 },
 
 select(nameBlock){
 this.sell=nameBlock; //при выборе нового блока график чистится(становится также новым ) 
 this.graph=[];
-
 },
-
-
 remove(deleteBlokItems){
 this.blockItems=this.blockItems.filter(el=> el!== deleteBlokItems)// тут обычный фильтр по массиву для удаления элементов
 },
