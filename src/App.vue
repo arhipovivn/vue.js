@@ -24,8 +24,8 @@
         <!-- при нажатии на кнопку enter вызывается событие-функция add -->
         <!-- v-on вместо него пишется @ для удобства  -->
         <button
-        @:click="add"
-        @:keydown.enter="add" 
+        @click="add"
+        @keyup="add" 
 
         
           type="button"
@@ -49,6 +49,22 @@
       </section>
 <!-- если в айтемс блок есть элементы то выводит поосочки сверху и с низу -->
         <hr v-if='blockItems.length' class="w-full border-t border-gray-600 my-4" />
+        <div>
+        <button 
+        v-if="page>1"
+        @click="page=page-1"
+        class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+>Назад</button>
+<button 
+class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
+@click="page=page+1"
+v-if="hasNextPage"
+>Вперед</button>
+<div>Фильтр: <input v-model="filterData"> </div>
+<!-- связал поле инпут и переменную filterData -->
+<hr v-if='blockItems.length' class="w-full border-t border-gray-600 my-4" />
+
+</div>
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <!-- продублировал див столько раз сколько элементов в массиве blockItems -->
             <!-- v-bind:key="el" можно заменить на :key="el" -->
@@ -58,9 +74,9 @@
 
           <div 
 
-          v-for=" el in blockItems"
+          v-for=" el in filteredList()"
             :key="el.name"
-                  @click="select(el )"
+                  @click="select(el)"
 
 :class="{
   'border-2': sell===el
@@ -80,7 +96,7 @@
             </div>
             <div class="w-full border-t border-gray-200"></div>
             <!-- высываю функцию для удаления элементов с аргументом el -->
-                    <!-- @:click.stop="remove(el)"  прекратил всплытие события .stop -->
+                    <!-- @click.stop="remove(el)"  прекратил всплытие события .stop -->
 
             <button
         @click.stop="remove(el)" 
@@ -153,6 +169,7 @@
 </template>
 
 <script>
+
 export default {
   name: "App",
   
@@ -161,26 +178,38 @@ export default {
       nameBlock:"",
       blockItems:[],
     sell:null ,// состояние, изначально равно 0
-    graph:[] //график
-     
+    graph:[], //график
+    page: 1,
+    filterData: "",
+    hasNextPage: true
     }
   },
-  // 
-  created(){
+  created(){ 
     const blockItemsData=localStorage.getItem("cryptonomicon-list");
     if(blockItemsData){
       this.blockItems = JSON.parse(blockItemsData)
       this.blockItems.forEach(ticker => {
-        this.update(ticker.name);
+        this.update(ticker.name);// для каждого элемента загруженного из json.parse подписывамся на обновления 
       });
 
     }
   },
   // тут описываются функции для событий и прочего
   methods:{
+    watch: {
+    filter() {
+      this.page = 1;
+    }},
+    filteredList () {
+      const start = (this.page -1)*6
+      const end = this.page*6
+const filteredBlockItems= this.blockItems.filter(el => el.name.includes(this.filterData))
+this.hasNextPage=filteredBlockItems.length>end;
+return filteredBlockItems.slice(start, end);
+    },
 update (newTikerName) {
   setInterval( async () => { const response= await fetch( // работа с асинхронной функцией, await заставит интерпретатор  ждать  пока промис справа от await не выполнится т.е fetch
-  `https://min-api.cryptocompare.com/data/price?fsym=${newTikerName}&tsyms=USD&api_key=ce3fd966e7a1d10d65f907b20bf000552158fd3ed1bd614110baa0ac6cb57a7e`)
+  `https://min-api.cryptocompare.com/data/price?fsym=${newTikerName}&tsyms=USD`)
   const data=await response.json() 
 this.blockItems.find(el=>el.name===newTikerName).price=data.USD
 if(this.sell?.name===newTikerName){
@@ -194,6 +223,7 @@ const newTiker={
 name:this.nameBlock,price:"-" // данные введенные в инпут добавляются в заголовок блока
 }; 
 this.blockItems.push(newTiker)// добавляю в массив объектов мной созанный новый блок с новым именем введенным через инпут
+this.filterData = "";// при начале ввода поле фильтра filterData становится чистым 
 localStorage.setItem("cryptonomicon-list",JSON.stringify(this.blockItems));// локальное хранилище данных в браузере получаем эти данные по ключу, и значению 
 this.update(newTiker.name);
 },
@@ -211,12 +241,8 @@ const minValue=Math.min(...this.graph);
 return this.graph.map((price)=> 5+((price-minValue)*95)/(maxValue-minValue))
 
 }
-
-  }
-  
-
-  
-};
+  }  
+}
 </script>
 
       <style src="./app.css"></style>
