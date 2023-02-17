@@ -60,10 +60,12 @@ class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent sh
 @click="page=page+1"
 v-if="hasNextPage"
 >Вперед</button>
-<div>Фильтр: <input v-model="filterData"> </div>
+<div>Фильтр: 
+<input v-model="filterData"
+placeholder="DOGE"
+style="border: 1px solid #718096; padding:5px; border-radius: 30px;"> </div>
 <!-- связал поле инпут и переменную filterData -->
 <hr v-if='blockItems.length' class="w-full border-t border-gray-600 my-4" />
-
 </div>
         <dl class="mt-5 grid grid-cols-1 gap-5 sm:grid-cols-3">
           <!-- продублировал див столько раз сколько элементов в массиве blockItems -->
@@ -74,11 +76,11 @@ v-if="hasNextPage"
 
           <div 
 
-          v-for=" el in filteredList()"
+          v-for=" el in separationBlockItems"
             :key="el.name"
                   @click="select(el)"
 
-:class="{
+            :class="{
   'border-2': sell===el
 }"
 
@@ -129,7 +131,7 @@ v-if="hasNextPage"
            <!-- v-for="(bar,idx) in normGraph()"
           :key="idx" нет кея за которые прицепиться в данных поэтому мы цепляемся заиндекс -->
           <div
-          v-for="(bar,idx) in normGraph()"
+          v-for="(bar,idx) in normGraph"
           :key="idx"
           :style="{height:`${bar}%`}"
            class="bg-purple-800 border w-10 "></div>
@@ -175,13 +177,12 @@ export default {
   
   data(){
     return{
-      nameBlock:"",
-      blockItems:[],
+    nameBlock:"",
+    blockItems:[],
+    filterData: "",
     sell:null ,// состояние, изначально равно 0
     graph:[], //график
     page: 1,
-    filterData: "",
-    hasNextPage: true
     }
   },
   created(){ 
@@ -195,24 +196,56 @@ export default {
     }
   },
   // тут описываются функции для событий и прочего
-  methods:{
-    watch: {
-    filter() {
-      this.page = 1;
-    }},
-    filteredList () {
-      const start = (this.page -1)*6
-      const end = this.page*6
-const filteredBlockItems= this.blockItems.filter(el => el.name.includes(this.filterData))
-this.hasNextPage=filteredBlockItems.length>end;
-return filteredBlockItems.slice(start, end);
-    },
-update (newTikerName) {
+watch: {
+  blockItems(){ //когда меняются блоки с элементами сохранить изменение в локалсторэдж
+   return localStorage.setItem("cryptonomicon-list",JSON.stringify(this.blockItems));// локальное хранилище данных в браузере получаем эти данные по ключу, и значению 
+  },
+  sell(){
+this.graph=[];// когда измен выбранный блок сбрасывание графика
+  },
+  separationBlockItems(){
+if(this.separationBlockItems.length===0&&this.page>1){// при удалениии эл-тов на 2 стр. будет перебрасывать на первую страницу 
+  this.page-=1;
+}
+  },
+  filterData() {//  когда меняется поле фильтр сбросить стр на 1
+    this.page = 1;
+  }
+},
+computed: {
+  normGraph(){
+  const maxValue=Math.max(...this.graph);
+  const minValue=Math.min(...this.graph);
+  if(maxValue===minValue){
+  return this.graph.map(()=>50);// все значения в графике одинаковые, одинаковые средние линии 
+}
+return this.graph.map((price)=> 5+((price-minValue)*95)/(maxValue-minValue))
+
+},
+  startIndex(){
+   return (this.page -1)*6;
+  },
+  endIndex(){
+    return this.page*6;
+  },
+  filteredList () {
+return this.blockItems.filter(el => el.name.includes(this.filterData));
+},
+separationBlockItems(){
+  return this.filteredList.slice(this.startIndex, this.endIndex);
+},
+hasNextPage(){
+  return this.filteredList.length>this.endIndex;
+
+}
+},
+methods:{
+  update (newTikerName) {
   setInterval( async () => { const response= await fetch( // работа с асинхронной функцией, await заставит интерпретатор  ждать  пока промис справа от await не выполнится т.е fetch
   `https://min-api.cryptocompare.com/data/price?fsym=${newTikerName}&tsyms=USD`)
   const data=await response.json() 
-this.blockItems.find(el=>el.name===newTikerName).price=data.USD
-if(this.sell?.name===newTikerName){
+  this.blockItems.find(el=>el.name===newTikerName).price=data.USD
+  if(this.sell?.name===newTikerName){
   this.graph.push(data.USD)
 }
 }, 3000); //в массиве нашел элемент с именем равным такому же как newTiker.name и добавил ему значение в $ нужной вылюты крипто
@@ -222,24 +255,19 @@ add () {
 const newTiker={
 name:this.nameBlock,price:"-" // данные введенные в инпут добавляются в заголовок блока
 }; 
-this.blockItems.push(newTiker)// добавляю в массив объектов мной созанный новый блок с новым именем введенным через инпут
+this.blockItems=[...this.blockItems,newTiker]//добавление в массив новых эл-в и обновление ссылки на массив
 this.filterData = "";// при начале ввода поле фильтра filterData становится чистым 
-localStorage.setItem("cryptonomicon-list",JSON.stringify(this.blockItems));// локальное хранилище данных в браузере получаем эти данные по ключу, и значению 
 this.update(newTiker.name);
 },
 
 select(nameBlock){
 this.sell=nameBlock; //при выборе нового блока график чистится(становится также новым ) 
-this.graph=[];
 },
 remove(deleteBlokItems){
-this.blockItems=this.blockItems.filter(el=> el!== deleteBlokItems)// тут обычный фильтр по массиву для удаления элементов
-},
-normGraph(){
-const maxValue=Math.max(...this.graph);
-const minValue=Math.min(...this.graph);
-return this.graph.map((price)=> 5+((price-minValue)*95)/(maxValue-minValue))
-
+this.blockItems=this.blockItems.filter(el=> el!== deleteBlokItems);// тут обычный фильтр по массиву для удаления элементов
+if(this.sell===deleteBlokItems){
+  this.sell=null;
+}
 }
   }  
 }
