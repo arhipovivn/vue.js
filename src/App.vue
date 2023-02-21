@@ -205,7 +205,8 @@ watch: {
   },
   sell(){
 this.graph=[];// когда измен выбранный блок сбрасывание графика
-  },
+this.$nextTick(()=>this.calcMaxGraphElements());// вызов колбэка сразу после изменения элемента  
+},
   separationBlockItems(){
 if(this.separationBlockItems.length===0&&this.page>1){// при удалениии эл-тов на 2 стр. будет перебрасывать на первую страницу 
   this.page-=1;
