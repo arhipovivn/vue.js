@@ -2,53 +2,8 @@
     <div class="container mx-auto flex flex-col items-center bg-gray-100 p-4">
     <div class="container">
       <div class="w-full my-4"></div>
-      <section>
-        <div class="flex">
-          <div class="max-w-xs">
-            <label for="wallet"
- class="block text-sm font-medium text-gray-700"
-              >Тикер</label>
-            <div class="mt-1 relative rounded-md shadow-md">
-              <!-- связывание элеметнов что вводится в инпуте попадает в tiker -->
-              <input 
-              v-model="nameBlock"
-                type="text"
-                name="wallet"
-                id="wallet"
-                class="block w-full pr-10 border-gray-300 text-gray-900 focus:outline-none focus:ring-gray-500 focus:border-gray-500 sm:text-sm rounded-md"
-                placeholder="Например DOGE"
-              />
-              
-            </div>
-          </div>
-        </div>
-        <!-- добавление события при нажатии на кнопку -->
-        <!-- при нажатии на кнопку enter вызывается событие-функция add -->
-        <!-- v-on вместо него пишется @ для удобства  -->
-        <button
-        @click="add"
-        @keyup="add" 
-
-        
-          type="button"
-          class="my-4 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
-        >
-          <!-- Heroicon name: solid/mail -->
-          <svg
-            class="-ml-0.5 mr-2 h-6 w-6"
-            xmlns="http://www.w3.org/2000/svg"
-            width="30"
-            height="30"
-            viewBox="0 0 24 24"
-            fill="#ffffff"
-          >
-            <path
-              d="M13 7h-2v4H7v2h4v4h2v-4h4v-2h-4V7zm-1-5C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm0 18c-4.41 0-8-3.59-8-8s3.59-8 8-8 8 3.59 8 8-3.59 8-8 8z"
-            ></path>
-          </svg>
-          Добавить
-        </button>
-      </section>
+<!-- тут я ловлю событие add-block-item  -->
+      <Add-Block @add-block-item="add" /> 
 <!-- если в айтемс блок есть элементы то выводит поосочки сверху и с низу -->
         <hr v-if='blockItems.length' class="w-full border-t border-gray-600 my-4" />
         <div>
@@ -142,8 +97,8 @@ style="border: 1px solid #718096; padding:5px; border-radius: 30px;"> </div>
         </div>
         <!-- при нажатии  на крестик  sell=null  -->
         <button
-@click="sell=null"    
-      type="button"
+        @click="sell=null"    
+        type="button"
           class="absolute top-0 right-0"
         >
           <svg
@@ -174,12 +129,19 @@ style="border: 1px solid #718096; padding:5px; border-radius: 30px;"> </div>
 </template>
 
 <script>
+import AddBlock from './components/AddBlock.vue'
 export default {
-  name: "App",
-  
+  components:{
+    AddBlock
+  },
+  props:{
+    disabled: {
+    type:Boolean,
+    required: false,
+    default: false
+  }},
   data(){
     return{
-    nameBlock:"",
     blockItems:[],
     filterData: "",
     sell:null ,// состояние, изначально равно 0
@@ -223,6 +185,9 @@ beforeUnMount(){
   window.removeEventListener('resize', this.calcMaxGraphElements)
 },
 computed: {
+  // manySymbol(){
+  //   return this.blockItems.length > 4;
+  // },
   normGraph(){
   const maxValue=Math.max(...this.graph);
   const minValue=Math.min(...this.graph);
@@ -271,9 +236,10 @@ this.maxGraphEl=this.$refs.graph.clientWidth/38;
 }, 300); //в массиве нашел элемент с именем равным такому же как newTiker.name и добавил ему значение в $ нужной вылюты крипто
 this.nameBlock="" // после добавления данных поле становится чистым 
 },
-add () {
+add (nameBlock) {
 const newTiker={
-name:this.nameBlock,price:"-" // данные введенные в инпут добавляются в заголовок блока
+name:nameBlock,
+price:"-" // данные введенные в инпут добавляются в заголовок блока
 }; 
 this.blockItems=[...this.blockItems,newTiker]//добавление в массив новых эл-в и обновление ссылки на массив
 this.filterData = "";// при начале ввода поле фильтра filterData становится чистым 
