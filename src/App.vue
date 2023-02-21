@@ -5,11 +5,13 @@
       <section>
         <div class="flex">
           <div class="max-w-xs">
-            <label for="wallet" class="block text-sm font-medium text-gray-700"
+            <label for="wallet"
+ class="block text-sm font-medium text-gray-700"
               >Тикер</label>
             <div class="mt-1 relative rounded-md shadow-md">
               <!-- связывание элеметнов что вводится в инпуте попадает в tiker -->
-              <input v-model="nameBlock"
+              <input 
+              v-model="nameBlock"
                 type="text"
                 name="wallet"
                 id="wallet"
@@ -50,7 +52,7 @@
 <!-- если в айтемс блок есть элементы то выводит поосочки сверху и с низу -->
         <hr v-if='blockItems.length' class="w-full border-t border-gray-600 my-4" />
         <div>
-        <button 
+          <button 
         v-if="page>1"
         @click="page=page-1"
         class="my-4 mx-2 inline-flex items-center py-2 px-4 border border-transparent shadow-sm text-sm leading-4 font-medium rounded-full text-white bg-gray-600 hover:bg-gray-700 transition-colors duration-300 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-gray-500"
@@ -127,7 +129,8 @@ style="border: 1px solid #718096; padding:5px; border-radius: 30px;"> </div>
           <!-- добаление динамически имени при клике не блок -->
           {{sell.name}} - USD
         </h3>
-        <div class="flex items-end border-gray-600 border-b border-l h-64">
+        <div class="flex items-end border-gray-600 border-b border-l h-64"
+        ref="graph">
            <!-- v-for="(bar,idx) in normGraph()"
           :key="idx" нет кея за которые прицепиться в данных поэтому мы цепляемся заиндекс -->
           <div
@@ -171,7 +174,6 @@ style="border: 1px solid #718096; padding:5px; border-radius: 30px;"> </div>
 </template>
 
 <script>
-
 export default {
   name: "App",
   
@@ -183,6 +185,7 @@ export default {
     sell:null ,// состояние, изначально равно 0
     graph:[], //график
     page: 1,
+    maxGraphEl:1
     }
   },
   created(){ 
@@ -212,6 +215,12 @@ if(this.separationBlockItems.length===0&&this.page>1){// при удалении
     this.page = 1;
   }
 },
+mounted() {
+  window.addEventListener('resize', this.calcMaxGraphElements)
+},
+beforeUnMount(){
+  window.removeEventListener('resize', this.calcMaxGraphElements)
+},
 computed: {
   normGraph(){
   const maxValue=Math.max(...this.graph);
@@ -239,16 +248,26 @@ hasNextPage(){
 
 }
 },
-methods:{
+methods:{ 
+   calcMaxGraphElements(){
+    if(!this.maxGraphEl ){
+      return;
+    }
+this.maxGraphEl=this.$refs.graph.clientWidth/38;
+   },
   update (newTikerName) {
-  setInterval( async () => { const response= await fetch( // работа с асинхронной функцией, await заставит интерпретатор  ждать  пока промис справа от await не выполнится т.е fetch
+    setInterval( async () => { 
+  const response= await fetch( // работа с асинхронной функцией, await заставит интерпретатор  ждать  пока промис справа от await не выполнится т.е fetch
   `https://min-api.cryptocompare.com/data/price?fsym=${newTikerName}&tsyms=USD`)
   const data=await response.json() 
   this.blockItems.find(el=>el.name===newTikerName).price=data.USD
   if(this.sell?.name===newTikerName){
   this.graph.push(data.USD)
+  if (this.graph.length > this.maxGraphEl){
+    this.graph.shift();
+  }
 }
-}, 3000); //в массиве нашел элемент с именем равным такому же как newTiker.name и добавил ему значение в $ нужной вылюты крипто
+}, 300); //в массиве нашел элемент с именем равным такому же как newTiker.name и добавил ему значение в $ нужной вылюты крипто
 this.nameBlock="" // после добавления данных поле становится чистым 
 },
 add () {
@@ -273,4 +292,4 @@ if(this.sell===deleteBlokItems){
 }
 </script>
 
-      <style src="./app.css"></style>
+<style src="./app.css"></style>
